@@ -1,1 +1,1 @@
-from .doc_analyser import DocAnalyzer
+from .docan import DocAnalyzer
