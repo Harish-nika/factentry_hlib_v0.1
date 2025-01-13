@@ -1,0 +1,187 @@
+[33mcommit ffcec1ec0454231b7743964c97fd0e924ae95034[m[33m ([m[1;36mHEAD -> [m[1;32mDocument_analyser[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;31morigin/Field_extractor[m[33m, [m[1;31morigin/Document_analyser[m[33m, [m[1;32mmain[m[33m)[m
+Author: Harishkumar_S <138020083+Harish-nika@users.noreply.github.com>
+Date:   Mon Jan 13 11:46:07 2025 +0530
+
+    Update __init__.py
+    
+    Adding Initialization python file to call key module
+
+[1mdiff --git a/__init__.py b/__init__.py[m
+[1mindex 1c3e648..f3c1989 100644[m
+[1m--- a/__init__.py[m
+[1m+++ b/__init__.py[m
+[36m@@ -1 +1 @@[m
+[31m-from .doc_analyser import DocAnalyzer[m
+[32m+[m[32mfrom .docan import DocAnalyzer[m
+
+[33mcommit 3ac677e22fa5fcecdfadd4e361545e935e091693[m
+Author: Harishkumar_S <138020083+Harish-nika@users.noreply.github.com>
+Date:   Mon Jan 13 11:44:55 2025 +0530
+
+    Add files via upload
+
+[1mdiff --git a/__init__.py b/__init__.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..1c3e648[m
+[1m--- /dev/null[m
+[1m+++ b/__init__.py[m
+[36m@@ -0,0 +1 @@[m
+[32m+[m[32mfrom .doc_analyser import DocAnalyzer[m
+
+[33mcommit cd6747df7bc21f962e3621f81f02d8ce8856624a[m
+Author: Harishkumar_S <138020083+Harish-nika@users.noreply.github.com>
+Date:   Mon Jan 13 11:42:40 2025 +0530
+
+    Create docan.py
+    
+    Adding document analyser python file
+
+[1mdiff --git a/docan.py b/docan.py[m
+[1mnew file mode 100644[m
+[1mindex 0000000..e5b12d8[m
+[1m--- /dev/null[m
+[1m+++ b/docan.py[m
+[36m@@ -0,0 +1,112 @@[m
+[32m+[m[32mimport os[m
+[32m+[m[32mimport fitz  # PyMuPDF for PDF handling[m
+[32m+[m[32mimport pandas as pd[m
+[32m+[m[32mimport re[m
+[32m+[m[32mimport pytesseract[m
+[32m+[m[32mfrom langdetect import detect, DetectorFactory[m
+[32m+[m[32mfrom collections import defaultdict[m
+[32m+[m[32mfrom PIL import Image[m
+[32m+[m[32mfrom datetime import datetime[m
+[32m+[m[32mimport signal[m
+[32m+[m[32mfrom icecream import ic[m
+[32m+[m
+[32m+[m[32m# Configuration and Initialization[m
+[32m+[m[32mcheckpoint_file = "checkpoint.xlsx"  # Temporary file for checkpointing[m
+[32m+[m
+[32m+[m[32mclass DocAnalyzer:[m
+[32m+[m[32m    def __init__(self, input_folder=None, csv_file=None, output_dir=None, num_processes=4):[m
+[32m+[m[32m        self.input_folder = input_folder[m
+[32m+[m[32m        self.csv_file = csv_file[m
+[32m+[m[32m        self.output_dir = output_dir[m
+[32m+[m[32m        self.num_processes = num_processes[m
+[32m+[m[32m        self.checkpoint_file = checkpoint_file[m
+[32m+[m[32m        self.results = [][m
+[32m+[m
+[32m+[m[32m    # Text Extraction from PDF[m
+[32m+[m[32m    def extract_text_from_pdf(self, pdf_path):[m
+[32m+[m[32m        pdf_document = fitz.open(pdf_path)[m
+[32m+[m[32m        text_chunks = [][m
+[32m+[m[32m        is_scanned = False[m
+[32m+[m[41m        [m
+[32m+[m[32m        for page_num, page in enumerate(pdf_document):[m
+[32m+[m[32m            text = page.get_text("text")[m
+[32m+[m[41m            [m
+[32m+[m[32m            if not text:  # If no text, it's likely a scanned image[m
+[32m+[m[32m                is_scanned = True[m
+[32m+[m[32m                # Use OCR to extract text from scanned image[m
+[32m+[m[32m                pix = page.get_pixmap()[m
+[32m+[m[32m                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)[m
+[32m+[m[32m                text = pytesseract.image_to_string(img)[m
+[32m+[m[41m            [m
+[32m+[m[32m            text_cleaned = re.sub(r'[^\x00-\x7F]+', ' ', text)  # Clean non-ASCII characters[m
+[32m+[m[32m            text_chunks.append(text_cleaned)[m
+[32m+[m[41m        [m
+[32m+[m[32m        pdf_document.close()[m
+[32m+[m[32m        return text_chunks, is_scanned[m
+[32m+[m
+[32m+[m[32m    # Language Detection[m
+[32m+[m[32m    def detect_languages(self, text_chunks):[m
+[32m+[m[32m        language_counts = defaultdict(int)[m
+[32m+[m[32m        for text_chunk in text_chunks:[m
+[32m+[m[32m            try:[m
+[32m+[m[32m                detected_lang = detect(text_chunk)  # Detect language of the chunk[m
+[32m+[m[32m                language_counts[detected_lang] += 1[m
+[32m+[m[32m            except:[m
+[32m+[m[32m                continue[m
+[32m+[m[41m        [m
+[32m+[m[32m        total_chunks = len(text_chunks)[m
+[32m+[m[32m        language_percentages = {lang: (count / total_chunks) * 100 for lang, count in language_counts.items()}[m
+[32m+[m[32m        dominant_language = max(language_percentages, key=language_percentages.get) if language_percentages else None[m
+[32m+[m[41m        [m
+[32m+[m[32m        return dominant_language, language_percentages[m
+[32m+[m
+[32m+[m[32m    # PDF Analysis (analyze_pdf)[m
+[32m+[m[32m    def analyze_pdf(self, pdf_path):[m
+[32m+[m[32m        try:[m
+[32m+[m[32m            # Extract text and determine if it's scanned[m
+[32m+[m[32m            text_chunks, is_scanned = self.extract_text_from_pdf(pdf_path)[m
+[32m+[m[41m            [m
+[32m+[m[32m            # Detect languages and calculate percentages[m
+[32m+[m[32m            dominant_language, language_percentages = self.detect_languages(text_chunks)[m
+[32m+[m[41m            [m
+[32m+[m[32m            return {[m
+[32m+[m[32m                'Is Scanned': is_scanned,[m
+[32m+[m[32m                'Dominant Language': dominant_language,[m
+[32m+[m[32m                'Language Distribution': language_percentages[m
+[32m+[m[32m            }[m
+[32m+[m[32m        except FileNotFoundError as e:[m
+[32m+[m[32m            print(e)[m
+[32m+[m[32m        except Exception as e:[m
+[32m+[m[32m            print(f"An error occurred: {e}")[m
+[32m+[m[32m        return None[m
+[32m+[m
+[32m+[m[32m    # Batch PDF Analysis (analyze_pdfs)[m
+[32m+[m[32m    def analyze_pdfs(self):[m
+[32m+[m[32m        filenames_df = pd.read_csv(self.csv_file)[m
+[32m+[m[32m        pdf_infos = [(index, row['filename'], os.path.join(self.input_folder, f"{row['filename']}.pdf")) for index, row in filenames_df.iterrows()][m
+[32m+[m
+[32m+[m[32m        for index, filename, pdf_path in pdf_infos:[m
+[32m+[m[32m            print(f"Processing Document {index + 1}: {pdf_path}")[m
+[32m+[m[32m            result = self.analyze_pdf(pdf_path)[m
+[32m+[m[32m            if result:[m
+[32m+[m[32m                print(f"Result for {filename}:")[m
+[32m+[m[32m                print(f"  Is Scanned: {result['Is Scanned']}")[m
+[32m+[m[32m                print(f"  Dominant Language: {result['Dominant Language']}")[m
+[32m+[m[32m                print(f"  Language Distribution: {result['Language Distribution']}")[m
+[32m+[m[41m                [m
+[32m+[m[32m                output_path = os.path.join(self.output_dir, f"{filename}_result.json")[m
+[32m+[m[32m                with open(output_path, 'w') as f:[m
+[32m+[m[32m                    f.write(str(result))[m
+[32m+[m
+[32m+[m[32m                self.results.append({[m
+[32m+[m[32m                    'Filename': filename,[m
+[32m+[m[32m                    'Document Number': index + 1,[m
+[32m+[m[32m                    'Dominant Language': result['Dominant Language'],[m
+[32m+[m[32m                    'Language Distribution': result['Language Distribution'],[m
+[32m+[m[32m                    'Is Scanned': result['Is Scanned'][m
+[32m+[m[32m                })[m
+[32m+[m[41m        [m
+[32m+[m[32m        if self.results:[m
+[32m+[m[32m            result_df = pd.DataFrame(self.results)[m
+[32m+[m[32m            result_df.to_excel(self.checkpoint_file, index=False)[m
+[32m+[m[32m            print(f"Results saved to {self.checkpoint_file}")[m
+
+[33mcommit b3a04b16d2ff9640601422730f329efa8b545e0c[m
+Author: Harishkumar_S <138020083+Harish-nika@users.noreply.github.com>
+Date:   Wed Jan 8 16:26:06 2025 +0530
+
+    Update README.md
+
+[1mdiff --git a/README.md b/README.md[m
+[1mindex 7d20c0f..c99dd1a 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -1,2 +1,3 @@[m
+ # factentry_hlib_v0.1[m
+[31m-testingdevops[m
+[32m+[m
+[32m+[m[32mtestrepo-testingdevops[m
+
+[33mcommit ca156ecb566ac194e51eb553765c191c70f849a8[m
+Author: Harishkumar_S <138020083+Harish-nika@users.noreply.github.com>
+Date:   Wed Jan 8 16:25:10 2025 +0530
+
+    Initial commit
+
+[1mdiff --git a/README.md b/README.md[m
+[1mnew file mode 100644[m
+[1mindex 0000000..7d20c0f[m
+[1m--- /dev/null[m
+[1m+++ b/README.md[m
+[36m@@ -0,0 +1,2 @@[m
+[32m+[m[32m# factentry_hlib_v0.1[m
+[32m+[m[32mtestingdevops[m
